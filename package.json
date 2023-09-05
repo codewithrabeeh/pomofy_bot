@@ -1,0 +1,36 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.33.1",
+    "axios": "^1.5.0",
+    "dayjs": "^1.11.9",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "inspirational-quotes": "^2.0.1",
+    "telegraf": "^4.13.1"
+  },
+  "name": "pomofy_bot",
+  "version": "1.0.0",
+  "description": "This bot is used to format forest app study together text into a cleaner one. ",
+  "main": "app.js",
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codewithrabeeh/pomofy_bot.git"
+  },
+  "keywords": [
+    "telegrambot",
+    "pomofy"
+  ],
+  "author": "Rabeeh Ebrahim",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/codewithrabeeh/pomofy_bot/issues"
+  },
+  "homepage": "https://github.com/codewithrabeeh/pomofy_bot#readme"
+}

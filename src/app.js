@@ -115,6 +115,10 @@ bot.on('text', async (ctx) => {
             totalDuration += each.duration
         }
 
+        if(totalDuration > 0){
+            totalDuration = totalDuration - durationToNumber
+        }
+
         const totalTree = Math.floor(totalDuration / 30)
 
         const message = messageFormator(quote, roomCode, plant, duration, totalTree)

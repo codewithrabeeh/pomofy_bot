@@ -38,7 +38,7 @@ bot.command('start', async (ctx) => {
 
 })
 
-bot.command('deleteLastSession', async (ctx) => {
+bot.command('deletelastsession', async (ctx) => {
     const telegramUserId = ctx.from.id
     // Assuming you have a timestamp column named 'created_at' in your table
 
@@ -49,7 +49,7 @@ bot.command('deleteLastSession', async (ctx) => {
         .eq('telegram_id', telegramUserId)
         .order('created_at', { ascending: false })
         .limit(1);
-
+   
     if (lastInsertionError) {
         ctx.reply('Error deleting last session data.')
         console.error('Error fetching last inserted data:', lastInsertionError.message);
@@ -67,7 +67,7 @@ bot.command('deleteLastSession', async (ctx) => {
             ctx.reply('Error deleting last session data.')
             console.error('Error deleting last inserted data:', deletionError.message);
         } else {
-            ctx.reply('Last session data deleted successfully')
+            ctx.reply('Last session data deleted successfully.')
         }
     } else {
         ctx.reply('No data found to delete.')

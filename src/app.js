@@ -8,6 +8,7 @@ const app = express()
 const plantNameGen = require('./libs/plantNameGenerator')
 const messageFormator = require('./libs/messageFormatter')
 const QuoteGen = require('./libs/quotesGenerator/quoteGenerator')
+const checkStreak = require('./libs/checkStreak')
 
 
 app.use(express.static('static'))
@@ -27,7 +28,7 @@ bot.command('start', async (ctx) => {
 
     let { data, error } = await supabase.from('user').select('*').eq('telegram_id', telegramUserId);
 
-    if (data.length === 0) {
+    if (data?.length === 0) {
         const userData = { telegram_id: telegramUserId, username: telegramUserName, name: telegramName }
         let { data, error } = await supabase.from('user').insert([userData])
         if (error?.message) {
@@ -109,6 +110,8 @@ bot.on('text', async (ctx) => {
             return ctx.reply('Something went wrong!')
         }
 
+        const streak = checkStreak(queryData)
+
         let totalDuration = 0;
 
         for (const each of queryData) {
@@ -118,10 +121,10 @@ bot.on('text', async (ctx) => {
         if(totalDuration > 0){
             totalDuration = totalDuration - durationToNumber
         }
-
+ 
         const totalTree = Math.floor(totalDuration / 30)
 
-        const message = messageFormator(quote, roomCode, plant, duration, totalTree)
+        const message = messageFormator(quote, roomCode, plant, duration, totalTree, streak)
 
         ctx.reply(message, { parse_mode: 'Markdown' })
     }

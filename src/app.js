@@ -98,7 +98,7 @@ bot.on('text', async (ctx) => {
         const { data: insertData, error: insertError } = await supabase.from('room_messages').insert([messageData])
 
         if (insertError?.code && insertError?.code !== '23505') {
-            return ctx.reply('Something went wrong! Please forward the study room message again')
+            return ctx.reply('Something went wrong! Please run /start again and forward the study room message again')
         }
 
         const { data: queryData, error: queryError } = await supabase

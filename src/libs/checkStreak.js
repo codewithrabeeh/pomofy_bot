@@ -7,7 +7,6 @@ module.exports = function checkStreak(queryData) {
             sortedData.push(itemDate)
         }  
     }) 
-    // NOTE: Above commented are set to sort. Now Count the streak.
 
     const sortedDate = sortedData.sort().reverse()
     

@@ -9,6 +9,7 @@ const plantNameGen = require('./libs/plantNameGenerator')
 const messageFormator = require('./libs/messageFormatter')
 const QuoteGen = require('./libs/quotesGenerator/quoteGenerator')
 const checkStreak = require('./libs/checkStreak')
+const validateMessage = require('./libs/validateMessage');
 
 
 app.use(express.static('static'))
@@ -41,7 +42,6 @@ bot.command('start', async (ctx) => {
 
 bot.command('deletelastsession', async (ctx) => {
     const telegramUserId = ctx.from.id
-    // Assuming you have a timestamp column named 'created_at' in your table
 
     // Get the timestamp of the last inserted record
     const { data: lastInsertion, error: lastInsertionError } = await supabase
@@ -50,7 +50,7 @@ bot.command('deletelastsession', async (ctx) => {
         .eq('telegram_id', telegramUserId)
         .order('created_at', { ascending: false })
         .limit(1);
-   
+
     if (lastInsertionError) {
         ctx.reply('Error deleting last session data.')
         console.error('Error fetching last inserted data:', lastInsertionError.message);
@@ -77,56 +77,62 @@ bot.command('deletelastsession', async (ctx) => {
 
 
 bot.on('text', async (ctx) => {
-    const telegramUserId = ctx.from.id
-    const receivedText = ctx.message?.text?.split(' ') ?? null;
-    const Quote = QuoteGen()
-    let validateMessage;
+    try {
+        const telegramUserId = ctx.from.id
+        const message = ctx.message.text
+        const isValid = validateMessage(message) 
 
-    if (receivedText) { // TODO: Create a function in libs and compare the message end-to-end and return boolean
-        const stringsToCheck = ['back', 'work!', 'Enter', 'plant', 'down', 'room']
-        validateMessage = stringsToCheck.every(string => receivedText.includes(string))
-    }
+        if (isValid) {
+            const receivedText = message.split(' ')
+            const roomCode = receivedText[15]
+            let plant = plantNameGen(receivedText)
+            const duration = receivedText[19]?.replace('-', ' ')?.split(' ')[0]
+            const durationToNumber = Number(duration)
+            const quote = QuoteGen()
 
-    if (validateMessage) {
-        const roomCode = receivedText[15]
-        let plant = plantNameGen(receivedText)
-        const duration = receivedText[19]?.replace('-', ' ')?.split(' ')[0]
-        const durationToNumber = Number(duration)
-        const quote = QuoteGen()
+            const messageData = { 
+                telegram_id: telegramUserId, 
+                room_code: roomCode, 
+                plant_name: plant, 
+                duration: durationToNumber 
+            }
 
-        const messageData = { telegram_id: telegramUserId, room_code: roomCode, plant_name: plant, duration: durationToNumber }
-        const { data: insertData, error: insertError } = await supabase.from('room_messages').insert([messageData])
+            const { data: insertData, error: insertError } = await supabase.from('room_messages').insert([messageData])
 
-        if (insertError?.code && insertError?.code !== '23505') {
-            return ctx.reply('Something went wrong! Please run /start again and forward the study room message again')
+            if (insertError?.code && insertError?.code !== '23505') {
+                return ctx.reply('Something went wrong! Please run /start again and forward the study room message again')
+            }
+
+            const { data: queryData, error: queryError } = await supabase
+                .from('room_messages')
+                .select('*')
+                .eq('telegram_id', telegramUserId)
+
+            if (queryError?.message) {
+                return ctx.reply('Something went wrong!')
+            }
+
+            const streak = checkStreak(queryData)
+
+            let totalDuration = 0;
+
+            for (const each of queryData) {
+                totalDuration += each.duration
+            }
+
+            if (totalDuration > 0) {
+                totalDuration = totalDuration - durationToNumber
+            }
+
+            const totalTree = Math.floor(totalDuration / 30)
+
+            const message = messageFormator(quote, roomCode, plant, duration, totalTree, streak)
+
+            ctx.reply(message, { parse_mode: 'Markdown' })
         }
-
-        const { data: queryData, error: queryError } = await supabase
-            .from('room_messages')
-            .select('*')
-            .eq('telegram_id', telegramUserId)
-
-        if (queryError?.message) {
-            return ctx.reply('Something went wrong!')
-        }
-
-        const streak = checkStreak(queryData)
-
-        let totalDuration = 0;
-
-        for (const each of queryData) {
-            totalDuration += each.duration
-        }
-
-        if(totalDuration > 0){
-            totalDuration = totalDuration - durationToNumber
-        }
- 
-        const totalTree = Math.floor(totalDuration / 30)
-
-        const message = messageFormator(quote, roomCode, plant, duration, totalTree, streak)
-
-        ctx.reply(message, { parse_mode: 'Markdown' })
+    } catch (error) {
+        ctx.reply('Something went wrong. Please try again!')
+        console.log(error.message)
     }
 })
 

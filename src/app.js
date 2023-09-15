@@ -1,15 +1,14 @@
 require('dotenv').config();
 
-const { Telegraf } = require('telegraf');
+const { Telegraf, Markup } = require('telegraf');
 const express = require('express')
 const { createClient } = require('@supabase/supabase-js')
 const app = express()
 
 const plantNameGen = require('./libs/plantNameGenerator')
-const messageFormator = require('./libs/messageFormatter')
-const QuoteGen = require('./libs/quotesGenerator/quoteGenerator')
-const checkStreak = require('./libs/checkStreak')
 const validateMessage = require('./libs/validateMessage');
+const queryDataAndCalcStats = require('./libs/queryDataAndCalcStats')
+const checkStreak = require('./libs/checkStreak') 
 
 
 app.use(express.static('static'))
@@ -75,12 +74,36 @@ bot.command('deletelastsession', async (ctx) => {
     }
 })
 
+bot.command('stats', async (ctx) => {
+    const telegramUserId = ctx.from.id
+
+    const { data: queryData, error: queryError } = await supabase
+        .from('room_messages')
+        .select('*')
+        .eq('telegram_id', telegramUserId)
+
+
+    if(queryData.length === 0) {
+        return ctx.reply("You don't have data to show!")
+    }
+    
+    let totalDuration = 0;
+
+    for (const each of queryData) {
+        totalDuration += each.duration
+    }
+    const streak = checkStreak(queryData)
+    const totalTree = Math.floor(totalDuration / 30)
+
+    ctx.reply(`*Your Stats:* \n\nTrees: ${totalTree} 🌳  |  Streaks: ${streak} 🔥`, {parse_mode: 'Markdown'})
+})
+
 
 bot.on('text', async (ctx) => {
     try {
         const telegramUserId = ctx.from.id
         const message = ctx.message.text
-        const isValid = validateMessage(message) 
+        const isValid = validateMessage(message)
 
         if (isValid) {
             const receivedText = message.split(' ')
@@ -88,13 +111,12 @@ bot.on('text', async (ctx) => {
             let plant = plantNameGen(receivedText)
             const duration = receivedText[19]?.replace('-', ' ')?.split(' ')[0]
             const durationToNumber = Number(duration)
-            const quote = QuoteGen()
 
-            const messageData = { 
-                telegram_id: telegramUserId, 
-                room_code: roomCode, 
-                plant_name: plant, 
-                duration: durationToNumber 
+            const messageData = {
+                telegram_id: telegramUserId,
+                room_code: roomCode,
+                plant_name: plant,
+                duration: durationToNumber
             }
 
             const { data: insertData, error: insertError } = await supabase.from('room_messages').insert([messageData])
@@ -103,36 +125,62 @@ bot.on('text', async (ctx) => {
                 return ctx.reply('Something went wrong! Please run /start again and forward the study room message again')
             }
 
-            const { data: queryData, error: queryError } = await supabase
-                .from('room_messages')
-                .select('*')
-                .eq('telegram_id', telegramUserId)
+            const keyboard = Markup.inlineKeyboard([
+                Markup.button.callback('2 Minutes', '2min'),
+                Markup.button.callback('3 Minutes', '3min'),
+                Markup.button.callback('5 Minutes', '5min'),
+                Markup.button.callback('7 Minutes', '7min'),
+            ]);
 
-            if (queryError?.message) {
-                return ctx.reply('Something went wrong!')
-            }
-
-            const streak = checkStreak(queryData)
-
-            let totalDuration = 0;
-
-            for (const each of queryData) {
-                totalDuration += each.duration
-            }
-
-            if (totalDuration > 0) {
-                totalDuration = totalDuration - durationToNumber
-            }
-
-            const totalTree = Math.floor(totalDuration / 30)
-
-            const message = messageFormator(quote, roomCode, plant, duration, totalTree, streak)
-
-            ctx.reply(message, { parse_mode: 'Markdown' })
+            ctx.reply('Please choose your "starts in" time in minutes.', keyboard)
         }
     } catch (error) {
         ctx.reply('Something went wrong. Please try again!')
-        console.log(error.message)
+        console.error(error.message)
+    }
+})
+
+bot.action('2min', async (ctx) => {
+    try {
+        const telegramUserId = ctx.from.id
+        const message = await queryDataAndCalcStats(telegramUserId, 2)
+        return ctx.reply(message, { parse_mode: 'Markdown' })
+    } catch (error) {
+        console.error(error.message)
+        ctx.reply('Something went wrong. Please try again')
+    }
+})
+
+bot.action('3min', async (ctx) => {
+    try {
+        const telegramUserId = ctx.from.id
+        const message = await queryDataAndCalcStats(telegramUserId, 3)
+        return ctx.reply(message, { parse_mode: 'Markdown' })
+    } catch (error) {
+        console.error(error.message)
+        ctx.reply('Something went wrong. Please try again')
+    }
+})
+
+bot.action('5min', async (ctx) => {
+    try {
+        const telegramUserId = ctx.from.id
+        const message = await queryDataAndCalcStats(telegramUserId, 5)
+        return ctx.reply(message, { parse_mode: 'Markdown' })
+    } catch (error) {
+        console.error(error.message)
+        ctx.reply('Something went wrong. Please try again')
+    }
+})
+
+bot.action('7min', async (ctx) => {
+    try {
+        const telegramUserId = ctx.from.id
+        const message = await queryDataAndCalcStats(telegramUserId, 7)
+        return ctx.reply(message, { parse_mode: 'Markdown' })
+    } catch (error) {
+        console.error(error.message)
+        ctx.reply('Something went wrong. Please try again')
     }
 })
 

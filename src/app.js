@@ -132,7 +132,7 @@ bot.on('text', async (ctx) => {
                 Markup.button.callback('7 Minutes', '7min'),
             ]);
 
-            ctx.reply('Please choose your "starts in" time in minutes.', keyboard)
+            ctx.reply('When do you start, within how many minutes?', keyboard)
         }
     } catch (error) {
         ctx.reply('Something went wrong. Please try again!')

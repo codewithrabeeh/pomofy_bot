@@ -173,7 +173,8 @@ bot.action('10min', async (ctx) => {
 
 bot.action('cancelsession', async (ctx) => {
     try {
-        deleteLastSessionData(ctx)
+        const replyMessageId = await deleteLastSessionData(ctx)
+        ctx.telegram.deleteMessage(ctx.chat.id, replyMessageId)
     } catch (error) {
         console.error(error.message)
         ctx.reply('Something went wrong. Please try again')

@@ -31,7 +31,11 @@ module.exports = async function deleteLastSessionData(ctx) {
             ctx.reply('Error deleting last session data.')
             console.error('Error deleting last inserted data:', deletionError.message);
         } else {
-            ctx.reply('Last session data deleted successfully.')
+            const mes = await ctx.reply('Last session deleted successfully.')
+            
+            /* Returning the messageId to remove the inline message */
+            const messageId = mes.message_id - 1
+            return messageId;
         }
     } else {
         ctx.reply('No data found to delete.')

@@ -16,7 +16,7 @@ module.exports = async function queryDataAndCalcStats(ctx, startsIn) {
         .from('room_messages')
         .select('*')
         .eq('telegram_id', telegramUserId)
-
+        .order('created_at')
 
     if (queryError?.message) {
         throw new Error('Something went wrong')
@@ -57,6 +57,6 @@ module.exports = async function queryDataAndCalcStats(ctx, startsIn) {
     const messageId = mes.message_id - 1
     ctx.telegram.deleteMessage(ctx.chat.id, messageId)
 
-    /* To schedule the notification */
+    /* To schedule the planting reminder */
     scheduleNotification(telegramUserId, startsIn)
 }

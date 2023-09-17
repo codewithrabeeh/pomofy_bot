@@ -8,7 +8,8 @@ const app = express()
 const plantNameGen = require('./libs/plantNameGenerator')
 const validateMessage = require('./libs/validateMessage');
 const queryDataAndCalcStats = require('./libs/queryDataAndCalcStats')
-const checkStreak = require('./libs/checkStreak') 
+const checkStreak = require('./libs/checkStreak');
+const deleteLastSessionData = require('./libs/deleteLastSessionData');
 
 
 app.use(express.static('static'))
@@ -40,38 +41,7 @@ bot.command('start', async (ctx) => {
 })
 
 bot.command('deletelastsession', async (ctx) => {
-    const telegramUserId = ctx.from.id
-
-    // Get the timestamp of the last inserted record
-    const { data: lastInsertion, error: lastInsertionError } = await supabase
-        .from('room_messages')
-        .select('created_at')
-        .eq('telegram_id', telegramUserId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-    if (lastInsertionError) {
-        ctx.reply('Error deleting last session data.')
-        console.error('Error fetching last inserted data:', lastInsertionError.message);
-    } else if (lastInsertion && lastInsertion.length > 0) {
-        const lastInsertedTimestamp = lastInsertion[0].created_at;
-
-        // Delete the last inserted record based on the timestamp
-        const { data: deletionResult, error: deletionError } = await supabase
-            .from('room_messages')
-            .delete()
-            .eq('telegram_id', telegramUserId)
-            .eq('created_at', lastInsertedTimestamp);
-
-        if (deletionError) {
-            ctx.reply('Error deleting last session data.')
-            console.error('Error deleting last inserted data:', deletionError.message);
-        } else {
-            ctx.reply('Last session data deleted successfully.')
-        }
-    } else {
-        ctx.reply('No data found to delete.')
-    }
+    deleteLastSessionData(ctx)
 })
 
 bot.command('stats', async (ctx) => {
@@ -83,10 +53,10 @@ bot.command('stats', async (ctx) => {
         .eq('telegram_id', telegramUserId)
 
 
-    if(queryData.length === 0) {
+    if (queryData.length === 0) {
         return ctx.reply("You don't have data to show!")
     }
-    
+
     let totalDuration = 0;
 
     for (const each of queryData) {
@@ -95,14 +65,14 @@ bot.command('stats', async (ctx) => {
     const streak = checkStreak(queryData)
     const totalTree = Math.floor(totalDuration / 30)
 
-    ctx.reply(`*Your Stats:* \n\nTrees: ${totalTree} 🌳  |  Streaks: ${streak} 🔥`, {parse_mode: 'Markdown'})
+    ctx.reply(`*Your Stats:* \n\nTrees: ${totalTree} 🌳  |  Streaks: ${streak} 🔥`, { parse_mode: 'Markdown' })
 })
 
 
 bot.on('text', async (ctx) => {
     try {
         const telegramUserId = ctx.from.id
-        const message = ctx.message.text
+        const message = ctx.message.text.replace('\n', " ")
         const isValid = validateMessage(message)
 
         if (isValid) {
@@ -125,14 +95,30 @@ bot.on('text', async (ctx) => {
                 return ctx.reply('Something went wrong! Please run /start again and forward the study room message again')
             }
 
-            const keyboard = Markup.inlineKeyboard([
+            const line1Buttons = [
                 Markup.button.callback('2 Minutes', '2min'),
                 Markup.button.callback('3 Minutes', '3min'),
+            ];
+
+            const line2Buttons = [
                 Markup.button.callback('5 Minutes', '5min'),
                 Markup.button.callback('7 Minutes', '7min'),
+            ];
+
+            const line3Buttons = [
+                Markup.button.callback('10 Minutes', '10min'),
+            ]
+
+            const line4Buttons = [
+                Markup.button.callback('Cancel', 'cancelsession')
+            ]
+
+            const keyboard = Markup.inlineKeyboard([
+                line1Buttons, line2Buttons, line3Buttons, line4Buttons
             ]);
 
             ctx.reply('When do you start, within how many minutes?', keyboard)
+          
         }
     } catch (error) {
         ctx.reply('Something went wrong. Please try again!')
@@ -142,9 +128,7 @@ bot.on('text', async (ctx) => {
 
 bot.action('2min', async (ctx) => {
     try {
-        const telegramUserId = ctx.from.id
-        const message = await queryDataAndCalcStats(telegramUserId, 2)
-        return ctx.reply(message, { parse_mode: 'Markdown' })
+        queryDataAndCalcStats(ctx, 2)
     } catch (error) {
         console.error(error.message)
         ctx.reply('Something went wrong. Please try again')
@@ -153,9 +137,7 @@ bot.action('2min', async (ctx) => {
 
 bot.action('3min', async (ctx) => {
     try {
-        const telegramUserId = ctx.from.id
-        const message = await queryDataAndCalcStats(telegramUserId, 3)
-        return ctx.reply(message, { parse_mode: 'Markdown' })
+        queryDataAndCalcStats(ctx, 3)
     } catch (error) {
         console.error(error.message)
         ctx.reply('Something went wrong. Please try again')
@@ -164,9 +146,7 @@ bot.action('3min', async (ctx) => {
 
 bot.action('5min', async (ctx) => {
     try {
-        const telegramUserId = ctx.from.id
-        const message = await queryDataAndCalcStats(telegramUserId, 5)
-        return ctx.reply(message, { parse_mode: 'Markdown' })
+        queryDataAndCalcStats(ctx, 5)
     } catch (error) {
         console.error(error.message)
         ctx.reply('Something went wrong. Please try again')
@@ -175,9 +155,25 @@ bot.action('5min', async (ctx) => {
 
 bot.action('7min', async (ctx) => {
     try {
-        const telegramUserId = ctx.from.id
-        const message = await queryDataAndCalcStats(telegramUserId, 7)
-        return ctx.reply(message, { parse_mode: 'Markdown' })
+        queryDataAndCalcStats(ctx, 7)
+    } catch (error) {
+        console.error(error.message)
+        ctx.reply('Something went wrong. Please try again')
+    }
+})
+
+bot.action('10min', async (ctx) => {
+    try {
+        queryDataAndCalcStats(ctx, 10)
+    } catch (error) {
+        console.error(error.message)
+        ctx.reply('Something went wrong. Please try again')
+    }
+})
+
+bot.action('cancelsession', async (ctx) => {
+    try {
+        deleteLastSessionData(ctx)
     } catch (error) {
         console.error(error.message)
         ctx.reply('Something went wrong. Please try again')

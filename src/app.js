@@ -118,7 +118,7 @@ bot.on('text', async (ctx) => {
             ]);
 
             ctx.reply('When do you start, within how many minutes?', keyboard)
-          
+
         }
     } catch (error) {
         ctx.reply('Something went wrong. Please try again!')
@@ -180,5 +180,17 @@ bot.action('cancelsession', async (ctx) => {
         ctx.reply('Something went wrong. Please try again')
     }
 })
+
+
+const user = supabase.channel('custom-insert-channel')
+    .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'user' },
+        (payload) => {
+            const {name, username} = payload.new
+            bot.telegram.sendMessage('1524214629', `User @${username} with name ${name} joined the bot`)
+        }
+    )
+    .subscribe()
 
 bot.launch()

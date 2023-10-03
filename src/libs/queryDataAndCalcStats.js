@@ -1,6 +1,7 @@
 const messageFormator = require('./messageFormatter')
 const checkStreak = require('./checkStreak')
 const QuoteGen = require('./quotesGenerator/quoteGenerator')
+const dayjs = require('dayjs')
 
 
 const { createClient } = require('@supabase/supabase-js');
@@ -31,16 +32,20 @@ module.exports = async function queryDataAndCalcStats(ctx, startsIn) {
     const lastIndexOfQueryData = queryData.length - 1
 
     const message = queryData[lastIndexOfQueryData]
-
+ 
     const { room_code, duration, plant_name } = message
 
     const durationToNumber = Number(duration)
     const quote = QuoteGen()
 
     let totalDuration = 0;
+    let session = 0;
 
     for (const each of queryData) {
-        totalDuration += each.duration
+        if(dayjs(each.created_at).format('YYYY-MM-DD') === dayjs(new Date()).format('YYYY-MM-DD')){
+            session += 1
+            totalDuration += each.duration
+        }
     }
 
     if (totalDuration > 0) {
@@ -49,7 +54,7 @@ module.exports = async function queryDataAndCalcStats(ctx, startsIn) {
 
     const totalTree = Math.floor(totalDuration / 30)
 
-    const formattedMessage = messageFormator(quote, room_code, plant_name, duration, totalTree, streak, startsIn)
+    const formattedMessage = messageFormator(quote, room_code, plant_name, duration, totalTree, streak, startsIn, session)
 
     const mes = await ctx.reply(formattedMessage, { parse_mode: 'Markdown' })
 

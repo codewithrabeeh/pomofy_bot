@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const { Telegraf, Markup } = require('telegraf');
 const express = require('express')
+const dayjs = require('dayjs')
 const { createClient } = require('@supabase/supabase-js')
 const app = express()
 
@@ -10,6 +11,7 @@ const validateMessage = require('./libs/validateMessage');
 const queryDataAndCalcStats = require('./libs/queryDataAndCalcStats')
 const checkStreak = require('./libs/checkStreak');
 const deleteLastSessionData = require('./libs/deleteLastSessionData');
+
 
 
 app.use(express.static('static'))
@@ -60,12 +62,14 @@ bot.command('stats', async (ctx) => {
     let totalDuration = 0;
 
     for (const each of queryData) {
-        totalDuration += each.duration
+        if(dayjs(each.created_at).format('YYYY-MM-DD') === dayjs(new Date()).format('YYYY-MM-DD')){
+            totalDuration += each.duration
+        }
     }
     const streak = checkStreak(queryData)
     const totalTree = Math.floor(totalDuration / 30)
 
-    ctx.reply(`*Your Stats:* \n\nTrees: ${totalTree} 🌳  |  Streaks: ${streak} 🔥`, { parse_mode: 'Markdown' })
+    ctx.reply(`*Your Stats:* \n\nToday: ${totalTree} 🌳  |  Streak: ${streak} 🔥`, { parse_mode: 'Markdown' })
 })
 
 
